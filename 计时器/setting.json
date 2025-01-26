@@ -1,0 +1,22 @@
+{
+  "TimerMode": "Countdown",
+  "Duration": 600,
+  "TopMost": true,
+  "PlayEndSound": true,
+  "EndSound": "sound2.wav",
+  "PlayWarningSound": true,
+  "WarningSound": "sound1.wav",
+  "WarningDuration": 60,
+  "TextFontName": "微软雅黑",
+  "TextFontSize": 96,
+  "TextColor": "Yellow",
+  "ShowStroke": true,
+  "StrokeColor": "Black",
+  "ShowShadow": true,
+  "ShadowOffset": 5,
+  "ShadowAlpha": 100,
+  "ShowShadowStroke": true,
+  "ShadowStrokeColor": "Black",
+  "X": 0,
+  "Y": 0
+}
