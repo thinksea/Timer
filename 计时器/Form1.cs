@@ -1,4 +1,5 @@
 using System.Drawing.Drawing2D;
+using System.Windows.Forms;
 
 namespace 计时器
 {
@@ -61,16 +62,60 @@ namespace 计时器
             System.IO.File.WriteAllText(Define.SettingFile, jsonSetting);
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private void 启动或继续计时器()
+        {
+			switch (this.State)
+			{
+				case State.Stop:
+					this.重置时间();
+					this.State = State.Run;
+					this.Refresh();
+					break;
+				case State.Suspend:
+					this.State = State.Run;
+					break;
+			}
+		}
+
+		private void 暂停或继续计时器()
+        {
+			switch (this.State)
+			{
+				case State.Run:
+					this.State = State.Suspend;
+					break;
+				case State.Suspend:
+					this.State = State.Run;
+					break;
+			}
+		}
+
+		private void 停止计时器()
+        {
+			if (this.State != State.Stop)
+			{
+				this.State = State.Stop;
+				this.重置时间();
+				this.Refresh();
+			}
+		}
+
+		private void Form1_Load(object sender, EventArgs e)
         {
             string settingFile = Define.SettingFile;
             if (System.IO.File.Exists(settingFile))
             {
                 string jsonSetting = System.IO.File.ReadAllText(settingFile);
                 this.Setting = System.Text.Json.JsonSerializer.Deserialize<Setting>(jsonSetting, Define.JsonDeserializeSettings);
-                this.TopMost = this.Setting.TopMost;
-                this.Location = new System.Drawing.Point(this.Setting.X, this.Setting.Y);
+            }
+            else
+            {
+				#region 初始化设置。
+				this.Setting = new();
+				#endregion
 			}
+			this.TopMost = this.Setting.TopMost;
+			this.Location = new System.Drawing.Point(this.Setting.X, this.Setting.Y);
 
 			this.重置时间();
             this.重置窗体尺寸();
@@ -85,36 +130,13 @@ namespace 计时器
                     this.帮助ToolStripMenuItem_Click(null, null);
                     break;
                 case Keys.F2: //启动/继续
-                    switch (this.State)
-                    {
-                        case State.Stop:
-                            this.重置时间();
-                            this.State = State.Run;
-                            this.Refresh();
-                            break;
-                        case State.Suspend:
-                            this.State = State.Run;
-                            break;
-                    }
+                    this.启动或继续计时器();
                     break;
                 case Keys.F3: //暂停/继续
-                    switch (this.State)
-                    {
-                        case State.Run:
-                            this.State = State.Suspend;
-                            break;
-                        case State.Suspend:
-                            this.State = State.Run;
-                            break;
-                    }
+                    this.暂停或继续计时器();
                     break;
                 case Keys.F4: //停止
-                    if (this.State != State.Stop)
-                    {
-                        this.State = State.Stop;
-                        this.重置时间();
-                        this.Refresh();
-                    }
+                    this.停止计时器();
                     break;
                 case Keys.Escape: //关闭计时程序
                     this.Close();
@@ -342,25 +364,63 @@ namespace 计时器
 
         }
 
-        private void 选项ToolStripMenuItem_Click(object sender, EventArgs e)
+        private SettingForm settingForm;
+        private Setting oldSetting;
+
+		private void 选项ToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            SettingForm form = new();
-            if (this.Setting != null)
+            if (this.State != State.Stop)
             {
-                form.Setting = this.Setting;
+                if (MessageBox.Show(this, @"计时器正在工作，必须先停止才可以更改设置。
+要停止计时器吗？", "", MessageBoxButtons.OKCancel, MessageBoxIcon.Error) == DialogResult.OK)
+                {
+                    this.停止计时器();
+                }
+                else
+                {
+                    return;
+                }
             }
-            if (form.ShowDialog(this) == DialogResult.OK)
+
+			this.oldSetting = this.Setting;
+            if (this.settingForm == null)
             {
-                this.Setting = form.Setting;
-                this.TopMost = this.Setting.TopMost;
-                this.State = State.Stop;
-                this.重置时间();
-                this.重置窗体尺寸();
-                this.Refresh();
+                this.settingForm = new();
             }
+			this.settingForm.Setting = this.Setting;
+			this.settingForm.SettingChanged += Form_SettingChanged;
+
+            if (this.settingForm.ShowDialog(this) == DialogResult.OK)
+            {
+                this.Setting = this.settingForm.Setting;
+                this.Setting.X = this.oldSetting.X;
+                this.Setting.Y = this.oldSetting.Y;
+            }
+            else
+            {
+                this.Setting = this.oldSetting;
+            }
+			this.TopMost = this.Setting.TopMost;
+			//this.State = State.Stop;
+			this.重置时间();
+			this.重置窗体尺寸();
+			this.Refresh();
+		}
+
+		/// <summary>
+		/// 当设置更改时调用此方法预览效果。
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private void Form_SettingChanged(object? sender, EventArgs e)
+        {
+            this.Setting = this.settingForm.Setting;
+            this.Setting.X = this.oldSetting.X;
+            this.Setting.Y = this.oldSetting.Y;
+            this.Refresh();
         }
 
-        private void 帮助ToolStripMenuItem_Click(object sender, EventArgs e)
+		private void 帮助ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             About form = new();
             form.ShowDialog(this);
